@@ -1,5 +1,5 @@
-#ifndef DICTIONARY_COLLECTION_HPP
-#define DICTIONARY_COLLECTION_HPP
+#ifndef DICTIONARYCOLLECTION_HPP
+#define DICTIONARYCOLLECTION_HPP
 #include "dictionary.hpp"
 
 namespace shabalin
