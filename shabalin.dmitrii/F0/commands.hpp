@@ -1,7 +1,7 @@
 #ifndef COMMANDS_HPP
 #define COMMANDS_HPP
 #include <functional>
-#include "dictionary_collection.hpp"
+#include "dictionaryCollection.hpp"
 
 namespace shabalin
 {
