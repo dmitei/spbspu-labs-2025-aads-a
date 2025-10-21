@@ -1,6 +1,7 @@
 #include "commands.hpp"
 #include <string>
 
+
 void shabalin::inputGraphs(std::istream& in, MapOfGraphs& graphs)
 {
   std::string name;
