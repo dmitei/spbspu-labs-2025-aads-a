@@ -16,7 +16,7 @@ namespace shabalin
 }
 
 template< class Key, class Value >
-abramov::HashNode< Key, Value >::HashNode(const Key &k, const Value &v):
+shabalin::HashNode< Key, Value >::HashNode(const Key &k, const Value &v):
   data_(std::make_pair(k, v)),
   next_(nullptr),
   active_(true)

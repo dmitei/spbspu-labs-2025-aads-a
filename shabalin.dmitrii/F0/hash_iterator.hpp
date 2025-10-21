@@ -1,7 +1,7 @@
-#ifndef ITERATOR_HPP
-#define ITERATOR_HPP
+#ifndef HASH_ITERATOR_HPP
+#define HASH_ITERATOR_HPP
 #include <iterator>
-#include "decls.hpp"
+#include "declarations.hpp"
 #include "hash_node.hpp"
 
 namespace shabalin

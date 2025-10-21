@@ -5,7 +5,7 @@
 
 int main()
 {
-  using namespace shabalim;
+  using namespace shabalin;
 
   DictionaryCollection collection{};
   CommandTable commands;

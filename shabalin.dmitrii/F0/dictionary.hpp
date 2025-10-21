@@ -1,7 +1,7 @@
 #ifndef DICTIONARY_HPP
 #define DICTIONARY_HPP
 #include <string>
-#include <hash_table/hash_table.hpp>
+#include "hash_table.hpp"
 
 namespace shabalin
 {

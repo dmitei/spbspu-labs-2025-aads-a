@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <algorithm>
 #include <functional>
-#include "decls.hpp"
+#include "declarations.hpp"
 #include "hash_node.hpp"
 #include "hash_iterator.hpp"
 #include "hash_cIterator.hpp"
@@ -57,7 +57,7 @@ namespace shabalin
 }
 
 template< class Key, class Value, class Hash, class Equal >
-abramov::HashTable< Key, Value, Hash, Equal >::HashTable():
+shabalin::HashTable< Key, Value, Hash, Equal >::HashTable():
   table_(nullptr),
   capacity_(17),
   size_(0),
@@ -68,7 +68,7 @@ abramov::HashTable< Key, Value, Hash, Equal >::HashTable():
 }
 
 template< class Key, class Value, class Hash, class Equal >
-void abramov::HashTable< Key, Value, Hash, Equal >::initTable()
+void shabalin::HashTable< Key, Value, Hash, Equal >::initTable()
 {
   table_ = new HashNode< Key, Value >*[capacity_];
   for (size_t i = 0; i < capacity_; ++i)
@@ -78,7 +78,7 @@ void abramov::HashTable< Key, Value, Hash, Equal >::initTable()
 }
 
 template< class Key, class Value, class Hash, class Equal >
-abramov::HashTable< Key, Value, Hash, Equal >::HashTable(cHash &other):
+shabalin::HashTable< Key, Value, Hash, Equal >::HashTable(cHash &other):
   table_(nullptr),
   capacity_(other.capacity_),
   size_(0),
@@ -98,7 +98,7 @@ abramov::HashTable< Key, Value, Hash, Equal >::HashTable(cHash &other):
 }
 
 template< class Key, class Value, class Hash, class Equal >
-void abramov::HashTable< Key, Value, Hash, Equal >::swap(Hash_t &other) noexcept
+void shabalin::HashTable< Key, Value, Hash, Equal >::swap(Hash_t &other) noexcept
 {
   std::swap(table_, other.table_);
   std::swap(capacity_, other.capacity_);
@@ -108,8 +108,8 @@ void abramov::HashTable< Key, Value, Hash, Equal >::swap(Hash_t &other) noexcept
 }
 
 template< class Key, class Value, class Hash, class Equal >
-typename abramov::HashTable< Key, Value, Hash, Equal >::Hash_t&
-abramov::HashTable< Key, Value, Hash, Equal >::operator=(cHash &other)
+typename shabalin::HashTable< Key, Value, Hash, Equal >::Hash_t&
+shabalin::HashTable< Key, Value, Hash, Equal >::operator=(cHash &other)
 {
   if (this != std::addressof(other))
   {
@@ -120,7 +120,7 @@ abramov::HashTable< Key, Value, Hash, Equal >::operator=(cHash &other)
 }
 
 template< class Key, class Value, class Hash, class Equal >
-abramov::HashTable< Key, Value, Hash, Equal >::~HashTable()
+shabalin::HashTable< Key, Value, Hash, Equal >::~HashTable()
 {
   for (size_t i = 0; i < capacity_; ++i)
   {
@@ -136,7 +136,7 @@ abramov::HashTable< Key, Value, Hash, Equal >::~HashTable()
 }
 
 template< class Key, class Value, class Hash, class Equal >
-void abramov::HashTable< Key, Value, Hash, Equal >::insert(const Key &k, const Value &v)
+void shabalin::HashTable< Key, Value, Hash, Equal >::insert(const Key &k, const Value &v)
 {
   resizeIfNeed();
   size_t pos = findInsertPosition(k);
@@ -154,7 +154,7 @@ void abramov::HashTable< Key, Value, Hash, Equal >::insert(const Key &k, const V
 }
 
 template< class Key, class Value, class Hash, class Equal >
-void abramov::HashTable< Key, Value, Hash, Equal >::resizeIfNeed()
+void shabalin::HashTable< Key, Value, Hash, Equal >::resizeIfNeed()
 {
   constexpr double max = 0.8;
   if (loadFactor() > max)
@@ -164,13 +164,13 @@ void abramov::HashTable< Key, Value, Hash, Equal >::resizeIfNeed()
 }
 
 template< class Key, class Value, class Hash, class Equal >
-double abramov::HashTable< Key, Value, Hash, Equal >::loadFactor() const noexcept
+double shabalin::HashTable< Key, Value, Hash, Equal >::loadFactor() const noexcept
 {
   return static_cast< double >(size_) / capacity_;
 }
 
 template< class Key, class Value, class Hash, class Equal >
-void abramov::HashTable< Key, Value, Hash, Equal >::rehash(size_t k)
+void shabalin::HashTable< Key, Value, Hash, Equal >::rehash(size_t k)
 {
   HashNode< Key, Value > **old_table = table_;
   size_t old_capacity = capacity_;
@@ -192,7 +192,7 @@ void abramov::HashTable< Key, Value, Hash, Equal >::rehash(size_t k)
 }
 
 template< class Key, class Value, class Hash, class Equal >
-size_t abramov::HashTable< Key, Value, Hash, Equal >::findInsertPosition(const Key &k) const
+size_t shabalin::HashTable< Key, Value, Hash, Equal >::findInsertPosition(const Key &k) const
 {
   size_t pos = hash_(k) % capacity_;
   size_t att = 0;
@@ -205,7 +205,7 @@ size_t abramov::HashTable< Key, Value, Hash, Equal >::findInsertPosition(const K
 }
 
 template< class Key, class Value, class Hash, class Equal >
-size_t abramov::HashTable< Key, Value, Hash, Equal >::erase(const Key &k)
+size_t shabalin::HashTable< Key, Value, Hash, Equal >::erase(const Key &k)
 {
   size_t removed = 0;
   size_t orig_pos = hash_(k) % capacity_;
@@ -246,7 +246,7 @@ size_t abramov::HashTable< Key, Value, Hash, Equal >::erase(const Key &k)
 }
 
 template< class Key, class Value, class Hash, class Equal >
-Value &abramov::HashTable< Key, Value, Hash, Equal >::operator[](const Key &k)
+Value &shabalin::HashTable< Key, Value, Hash, Equal >::operator[](const Key &k)
 {
   auto it = find(k);
   if (it != end())
@@ -258,15 +258,15 @@ Value &abramov::HashTable< Key, Value, Hash, Equal >::operator[](const Key &k)
 }
 
 template< class Key, class Value, class Hash, class Equal >
-typename abramov::HashTable< Key, Value, Hash, Equal >::Iter
-abramov::HashTable< Key, Value, Hash, Equal >::end()
+typename shabalin::HashTable< Key, Value, Hash, Equal >::Iter
+shabalin::HashTable< Key, Value, Hash, Equal >::end()
 {
   return HashIterator< Key, Value, Hash, Equal >(this, capacity_, nullptr);
 }
 
 template< class Key, class Value, class Hash, class Equal >
-typename abramov::HashTable< Key, Value, Hash, Equal >::Iter
-abramov::HashTable< Key, Value, Hash, Equal >::begin()
+typename shabalin::HashTable< Key, Value, Hash, Equal >::Iter
+shabalin::HashTable< Key, Value, Hash, Equal >::begin()
 {
   for (size_t i = 0; i < capacity_; ++i)
   {
@@ -279,8 +279,8 @@ abramov::HashTable< Key, Value, Hash, Equal >::begin()
 }
 
 template< class Key, class Value, class Hash, class Equal >
-typename abramov::HashTable< Key, Value, Hash, Equal >::Iter
-abramov::HashTable< Key, Value, Hash, Equal >::find(const Key & k)
+typename shabalin::HashTable< Key, Value, Hash, Equal >::Iter
+shabalin::HashTable< Key, Value, Hash, Equal >::find(const Key & k)
 {
   if (empty())
   {
@@ -307,15 +307,15 @@ abramov::HashTable< Key, Value, Hash, Equal >::find(const Key & k)
 }
 
 template< class Key, class Value, class Hash, class Equal >
-typename abramov::HashTable< Key, Value, Hash, Equal >::cIter
-abramov::HashTable< Key, Value, Hash, Equal >::cend() const
+typename shabalin::HashTable< Key, Value, Hash, Equal >::cIter
+shabalin::HashTable< Key, Value, Hash, Equal >::cend() const
 {
   return ConstHashIterator< Key, Value, Hash, Equal >(this, capacity_, nullptr);
 }
 
 template< class Key, class Value, class Hash, class Equal >
-typename abramov::HashTable< Key, Value, Hash, Equal >::cIter
-abramov::HashTable< Key, Value, Hash, Equal >::cbegin() const
+typename shabalin::HashTable< Key, Value, Hash, Equal >::cIter
+shabalin::HashTable< Key, Value, Hash, Equal >::cbegin() const
 {
   for (size_t i = 0; i < capacity_; ++i)
   {
@@ -328,8 +328,8 @@ abramov::HashTable< Key, Value, Hash, Equal >::cbegin() const
 }
 
 template< class Key, class Value, class Hash, class Equal >
-typename abramov::HashTable< Key, Value, Hash, Equal >::cIter
-abramov::HashTable< Key, Value, Hash, Equal >::cfind(const Key & k) const
+typename shabalin::HashTable< Key, Value, Hash, Equal >::cIter
+shabalin::HashTable< Key, Value, Hash, Equal >::cfind(const Key & k) const
 {
   if (empty())
   {
@@ -356,7 +356,7 @@ abramov::HashTable< Key, Value, Hash, Equal >::cfind(const Key & k) const
 }
 
 template< class Key, class Value, class Hash, class Equal >
-Value &abramov::HashTable< Key, Value, Hash, Equal >::at(const Key &k)
+Value &shabalin::HashTable< Key, Value, Hash, Equal >::at(const Key &k)
 {
   auto it = find(k);
   if (it == end())
@@ -368,19 +368,19 @@ Value &abramov::HashTable< Key, Value, Hash, Equal >::at(const Key &k)
 
 
 template< class Key, class Value, class Hash, class Equal >
-size_t abramov::HashTable< Key, Value, Hash, Equal >::size() const noexcept
+size_t shabalin::HashTable< Key, Value, Hash, Equal >::size() const noexcept
 {
   return size_;
 }
 
 template< class Key, class Value, class Hash, class Equal >
-bool abramov::HashTable< Key, Value, Hash, Equal >::empty() const noexcept
+bool shabalin::HashTable< Key, Value, Hash, Equal >::empty() const noexcept
 {
   return size_ == 0;
 }
 
 template< class Key, class Value, class Hash, class Equal >
-bool abramov::HashTable< Key, Value, Hash, Equal >::isPrime(size_t k) const noexcept
+bool shabalin::HashTable< Key, Value, Hash, Equal >::isPrime(size_t k) const noexcept
 {
   if (k % 2 == 0)
   {
@@ -397,7 +397,7 @@ bool abramov::HashTable< Key, Value, Hash, Equal >::isPrime(size_t k) const noex
 }
 
 template< class Key, class Value, class Hash, class Equal >
-size_t abramov::HashTable< Key, Value, Hash, Equal >::getLargerPrimeCapacity(size_t k) const noexcept
+size_t shabalin::HashTable< Key, Value, Hash, Equal >::getLargerPrimeCapacity(size_t k) const noexcept
 {
   size_t cand = 2 * cand + 1;
   while (true)
