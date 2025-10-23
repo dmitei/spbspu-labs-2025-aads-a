@@ -1,194 +1,535 @@
 #include "commands.hpp"
-#include <iostream>
-#include <stdexcept>
+#include <string>
+#include <fstream>
+#include "../common/container.hpp"
 
-void shabalin::getCommands(CommandTable &commands, DictionaryCollection &collect)
+void shabalin::printDict(Dicts & dicts, std::istream & in, std::ostream & out)
 {
-  commands["adddict"] = std::bind(addDict, std::ref(collect), std::ref(std::cin));
-  commands["addtodict"] = std::bind(addToDict, std::ref(collect), std::ref(std::cin));
-  commands["rmdict"] = std::bind(deleteDict, std::ref(collect), std::ref(std::cin));
-  commands["rmfromdict"] = std::bind(deleteFromDict, std::ref(collect), std::ref(std::cin));
-  commands["set"] = std::bind(setDicts, std::ref(collect), std::ref(std::cin));
-  commands["intersection"] = std::bind(intersectDicts, std::ref(collect), std::ref(std::cin));
-  commands["union"] = std::bind(unionDicts, std::ref(collect), std::ref(std::cin));
-  commands["difference"] = std::bind(diffDicts, std::ref(collect), std::ref(std::cin));
-  commands["merge"] = std::bind(mergeDicts, std::ref(collect), std::ref(std::cin));
-  commands["print"] = std::bind(printDict, std::cref(collect), std::ref(std::cin), std::ref(std::cout));
-}
-
-void shabalin::addDict(DictionaryCollection &collect, std::istream &in)
-{
-  std::string name;
-  in >> name;
-  if (name.empty())
+  std::string dictName;
+  in >> dictName;
+  if (!in)
   {
-    throw std::logic_error("There are no enough arguments\n");
+    out << "<WRONG COMMAND>\n";
+    return;
   }
-  collect.addDict(name);
-}
-
-void shabalin::addToDict(DictionaryCollection &collect, std::istream &in)
-{
-  std::string name;
-  std::string word;
-  std::string trans;
-  in >> name >> word >> trans;
-  if (name.empty() || word.empty() || trans.empty())
+  auto dictIt = dicts.find(dictName);
+  if (dictIt == dicts.end())
   {
-    throw std::logic_error("There are no enough arguments\n");
+    out << "The dictionary with name " << dictName << " doesn't exist.\n";
+    return;
   }
-  Dictionary &dict = collect.findDict(name);
-  dict.addWord(word, trans);
-}
-
-void shabalin::deleteDict(DictionaryCollection &collect, std::istream &in)
-{
-  std::string name;
-  in >> name;
-  if (name.empty())
-  {
-    throw std::logic_error("There are no enough arguments\n");
-  }
-  collect.deleteDict(name);
-}
-
-void shabalin::deleteFromDict(DictionaryCollection &collect, std::istream &in)
-{
-  std::string name;
-  std::string word;
-  in >> name >> word;
-  if (name.empty() || word.empty())
-  {
-    throw std::logic_error("There is no enough arguments\n");
-  }
-  Dictionary &dict = collect.findDict(name);
-  dict.deleteWord(word);
-}
-
-void shabalin::setDicts(DictionaryCollection &collect, std::istream &in)
-{
-  struct SetOperation
-  {
-    Dictionary operator()(Dictionary &res, const Dictionary &other) const
-    {
-      return res.setWithDict(other);
-    }
-  };
-
-  processDicts(collect, in, SetOperation());
-}
-
-void shabalin::intersectDicts(DictionaryCollection &collect, std::istream &in)
-{
-  struct IntersectOperation
-  {
-    Dictionary operator()(Dictionary &res, const Dictionary &other) const
-    {
-      return res.intersectWithDict(other);
-    }
-  };
-
-  processDicts(collect, in, IntersectOperation());
-}
-
-void shabalin::unionDicts(DictionaryCollection &collect, std::istream &in)
-{
-  struct UnionOperation
-  {
-    Dictionary operator()(Dictionary &res, const Dictionary &other) const
-    {
-      return res.unionWithDict(other);
-    }
-  };
-
-  processDicts(collect, in, UnionOperation());
-}
-
-void shabalin::diffDicts(DictionaryCollection &collect, std::istream &in)
-{
-  struct DiffOperation
-  {
-    Dictionary operator()(Dictionary &res, const Dictionary &other) const
-    {
-      return res.diffDict(other);
-    }
-  };
-
-  processDicts(collect, in, DiffOperation());
-}
-
-void shabalin::mergeDicts(DictionaryCollection &collect, std::istream &in)
-{
-  struct MergeOperation
-  {
-    Dictionary operator()(Dictionary &res, const Dictionary &other) const
-    {
-      return res.mergeDict(other);
-    }
-  };
-
-  processDicts(collect, in, MergeOperation(), true);
-}
-
-void shabalin::printDict(const DictionaryCollection &collect, std::istream &in, std::ostream &out)
-{
-  std::string name;
-  in >> name;
-  if (name.empty())
-  {
-    throw std::logic_error("There are no enough arguments\n");
-  }
-  const Dictionary &dict = collect.cfindDict(name);
+  const Dict & dict = dictIt->second;
   if (dict.empty())
   {
-    throw std::logic_error("Dictionary is empty\n");
+    out << dictName << " is empty.\n";
+    return;
   }
-  dict.print(out);
+  for (auto it = dict.cbegin(); it != dict.cend(); ++it)
+  {
+    out << it->first << " -";
+    const Container & translations = it->second;
+    for (std::size_t i = 0; i < translations.size(); ++i)
+    {
+      out << " " << translations[i];
+    }
+    out << "\n";
+  }
 }
 
-template< class Func >
-void shabalin::processDicts(DictionaryCollection &collect, std::istream &in, Func func, bool del)
+void shabalin::addWord(Dicts & dicts, std::istream & in, std::ostream & out)
 {
-  std::string new_name;
-  in >> new_name;
-  char bracket = '\0';
-  in >> bracket;
-  if (bracket != '(')
+  std::string dictName, word, translation;
+  in >> dictName >> word >> translation;
+  if (!in)
   {
-    throw std::logic_error("Expected '('\n");
+    out << "<WRONG COMMAND>\n";
+    return;
   }
-  Dictionary res{};
-  std::string name;
-  bool first = true;
-  std::string first_dict_name;
-  while (in >> name && name != ")")
+  auto dictIt = dicts.find(dictName);
+  if (dictIt == dicts.end())
   {
-    if (first)
+    out << "The dictionary with name " << dictName << " doesn't exist.\n";
+    return;
+  }
+  Dict & dict = dictIt->second;
+  auto wordIt = dict.find(word);
+  if (wordIt != dict.end())
+  {
+    Container & translations = wordIt->second;
+    for (std::size_t i = 0; i < translations.size(); ++i)
     {
-      res = collect.findDict(name);
-      first_dict_name = name;
-      first = false;
+      if (translations[i] == translation)
+      {
+        out << "The word " << word << " already exists in " << dictName << "\n";
+        return;
+      }
+    }
+    translations.push_back(translation);
+    return;
+  }
+  Container translations;
+  translations.push_back(translation);
+  dict.insert(word, translations);
+}
+
+void shabalin::translateWord(Dicts & dicts, std::istream & in, std::ostream & out)
+{
+  std::string dictName, word;
+  in >> dictName >> word;
+  if (!in)
+  {
+    out << "<WRONG COMMAND>\n";
+    return;
+  }
+  auto dictIt = dicts.find(dictName);
+  if (dictIt == dicts.end())
+  {
+    out << "The dictionary with name " << dictName << " doesn't exist.\n";
+    return;
+  }
+  const Dict & dict = dictIt->second;
+  auto wordIt = dict.find(word);
+  if (wordIt == dict.cend())
+  {
+    out << "The word " << word << " doesn't exist in " << dictName << "\n";
+    return;
+  }
+  const Container & translations = wordIt->second;
+  for (std::size_t i = 0; i < translations.size(); ++i)
+  {
+    out << translations[i];
+    if (i + 1 < translations.size())
+    {
+      out << " ";
+    }
+  }
+  out << "\n";
+}
+
+void shabalin::removeWord(Dicts & dicts, std::istream & in, std::ostream & out)
+{
+  std::string dictName, word;
+  in >> dictName >> word;
+  if (!in)
+  {
+    out << "<WRONG COMMAND>\n";
+    return;
+  }
+  auto dictIt = dicts.find(dictName);
+  if (dictIt == dicts.end())
+  {
+    out << "The dictionary with name " << dictName << " doesn't exist.\n";
+    return;
+  }
+  Dict & dict = dictIt->second;
+  auto wordIt = dict.find(word);
+  if (wordIt == dict.end())
+  {
+    out << "The word " << word << " doesn't exist in " << dictName << "\n";
+    return;
+  }
+  dict.erase(wordIt);
+  out << "The word " << word << " successfully deleted from " << dictName << "\n";
+}
+
+void shabalin::createDict(Dicts & dicts, std::istream & in, std::ostream & out)
+{
+  std::string name;
+  in >> name;
+  if (!in)
+  {
+    out << "<WRONG COMMAND>\n";
+    return;
+  }
+  if (dicts.find(name) != dicts.end())
+  {
+    out << "The dictionary with name " << name << " already exists.\n";
+    return;
+  }
+  Dict dict;
+  dicts.insert(name, dict);
+  out << name << " is successfully created.\n";
+}
+
+void shabalin::saveToFile(Dicts & dicts, std::istream & in, std::ostream & out)
+{
+  std::string dictName, fileName;
+  in >> dictName >> fileName;
+  if (!in)
+  {
+    out << "<WRONG COMMAND>\n";
+    return;
+  }
+  if (fileName.size() < 4 || fileName.substr(fileName.size() - 4) != ".txt")
+  {
+    out << "<WRONG COMMAND>\n";
+    return;
+  }
+  auto dictIt = dicts.find(dictName);
+  if (dictIt == dicts.end())
+  {
+    out << "The dictionary with name " << dictName << " doesn't exist.\n";
+    return;
+  }
+  std::ofstream file(fileName);
+  if (!file)
+  {
+    out << "<WRONG COMMAND>\n";
+    return;
+  }
+  file << dictName << "\n";
+  const Dict & dict = dictIt->second;
+  for (auto it = dict.cbegin(); it != dict.cend(); ++it)
+  {
+    file << it->first << " -";
+    const Container & translations = it->second;
+    for (std::size_t i = 0; i < translations.size(); ++i)
+    {
+      file << " " << translations[i];
+    }
+    file << "\n";
+  }
+}
+
+void shabalin::combineDicts(Dicts & dicts, std::istream & in, std::ostream & out)
+{
+  std::string newName, dict1Name, dict2Name;
+  in >> newName >> dict1Name >> dict2Name;
+  if (!in)
+  {
+    out << "<WRONG COMMAND>\n";
+    return;
+  }
+  if (dicts.find(newName) != dicts.end())
+  {
+    out << "The dictionary with name " << newName << " already exists.\n";
+    return;
+  }
+  auto it1 = dicts.find(dict1Name);
+  auto it2 = dicts.find(dict2Name);
+  if (it1 == dicts.end() || it2 == dicts.end())
+  {
+    out << "<WRONG COMMAND>\n";
+    return;
+  }
+  const Dict & dict1 = it1->second;
+  const Dict & dict2 = it2->second;
+  Dict result;
+  for (auto it = dict1.cbegin(); it != dict1.cend(); ++it)
+  {
+    result.insert(it->first, it->second);
+  }
+  for (auto it = dict2.cbegin(); it != dict2.cend(); ++it)
+  {
+    auto resIt = result.find(it->first);
+    if (resIt == result.end())
+    {
+      result.insert(it->first, it->second);
     }
     else
     {
-      res = func(res, collect.cfindDict(name));
-      if (del)
+      Container merged = resIt->second;
+      const Container & addTr = it->second;
+      for (std::size_t i = 0; i < addTr.size(); ++i)
       {
-        collect.deleteDict(name);
+        bool found = false;
+        for (std::size_t j = 0; j < merged.size(); ++j)
+        {
+          if (merged[j] == addTr[i])
+          {
+            found = true;
+            break;
+          }
+        }
+        if (!found)
+        {
+          merged.push_back(addTr[i]);
+        }
       }
+      result.erase(resIt);
+      result.insert(it->first, merged);
     }
   }
-  if (name != ")")
+  dicts.insert(newName, result);
+  out << "Dictionary " << newName << " is successfully created\n";
+}
+
+void shabalin::deleteWord(Dicts & dicts, std::istream & in, std::ostream & out)
+{
+  std::string dictName;
+  in >> dictName;
+  if (!in)
   {
-    throw std::logic_error("Expected ')'\n");
+    out << "<WRONG COMMAND>\n";
+    return;
   }
-  if (res.empty())
+  auto it = dicts.find(dictName);
+  if (it == dicts.end())
   {
-    throw std::logic_error("There are no words for dictionary\n");
+    out << "The dictionary with name " << dictName << " doesn't exist.\n";
+    return;
   }
-  collect.addCompleteDict(new_name, res);
-  if (del)
+  dicts.erase(it);
+}
+
+void shabalin::editTranslation(Dicts & dicts, std::istream & in, std::ostream & out)
+{
+  std::string dictName, word, newTranslation;
+  in >> dictName >> word >> newTranslation;
+  if (!in)
   {
-    collect.deleteDict(first_dict_name);
+    out << "<WRONG COMMAND>\n";
+    return;
   }
+  auto dictIt = dicts.find(dictName);
+  if (dictIt == dicts.end())
+  {
+    out << "The dictionary with name " << dictName << " doesn't exist.\n";
+    return;
+  }
+  Dict & dict = dictIt->second;
+  auto wordIt = dict.find(word);
+  if (wordIt == dict.end())
+  {
+    out << "The word " << word << " doesn't exist in " << dictName << "\n";
+    return;
+  }
+  wordIt->second.clear();
+  wordIt->second.push_back(newTranslation);
+}
+
+void shabalin::renameDict(Dicts & dicts, std::istream & in, std::ostream & out)
+{
+  std::string oldName, newName;
+  in >> oldName >> newName;
+  if (!in)
+  {
+    out << "<WRONG COMMAND>\n";
+    return;
+  }
+  auto oldIt = dicts.find(oldName);
+  if (oldIt == dicts.end())
+  {
+    out << "The dictionary with name " << oldName << " doesn't exist.\n";
+    return;
+  }
+  if (dicts.find(newName) != dicts.end())
+  {
+    out << "The dictionary with name " << newName << " already exists.\n";
+    return;
+  }
+  Dict dictCopy = oldIt->second;
+  dicts.erase(oldIt);
+  dicts.insert(newName, dictCopy);
+}
+
+void shabalin::moveCommand(Dicts & dicts, std::istream & in, std::ostream & out)
+{
+  std::string fromDict, toDict, word;
+  in >> fromDict >> toDict >> word;
+  if (!in)
+  {
+    out << "<WRONG COMMAND>\n";
+    return;
+  }
+  auto fromIt = dicts.find(fromDict);
+  if (fromIt == dicts.end())
+  {
+    out << "The dictionary with name " << fromDict << " doesn't exist.\n";
+    return;
+  }
+  auto toIt = dicts.find(toDict);
+  if (toIt == dicts.end())
+  {
+    out << "The dictionary with name " << toDict << " doesn't exist.\n";
+    return;
+  }
+  Dict & from = fromIt->second;
+  Dict & to = toIt->second;
+  auto wordIt = from.find(word);
+  if (wordIt == from.end())
+  {
+    out << "The word " << word << " doesn't exist in " << fromDict << "\n";
+    return;
+  }
+  if (to.find(word) != to.end())
+  {
+    out << "The word " << word << " already exists in " << toDict << "\n";
+    return;
+  }
+  Container copyArr = wordIt->second;
+  to.insert(word, copyArr);
+  from.erase(wordIt);
+  out << "The word " << word << " moved from " << fromDict << " to " << toDict << "\n";
+}
+
+void shabalin::copyCommand(Dicts & dicts, std::istream & in, std::ostream & out)
+{
+  std::string fromDict, toDict, word;
+  in >> fromDict >> toDict >> word;
+  if (!in)
+  {
+    out << "<WRONG COMMAND>\n";
+    return;
+  }
+  auto fromIt = dicts.find(fromDict);
+  if (fromIt == dicts.end())
+  {
+    out << "The dictionary with name " << fromDict << " doesn't exist.\n";
+    return;
+  }
+  auto toIt = dicts.find(toDict);
+  if (toIt == dicts.end())
+  {
+    out << "The dictionary with name " << toDict << " doesn't exist.\n";
+    return;
+  }
+  const Dict & from = fromIt->second;
+  Dict & to = toIt->second;
+  auto wordIt = from.find(word);
+  if (wordIt == from.cend())
+  {
+    out << "The word " << word << " doesn't exist in " << fromDict << "\n";
+    return;
+  }
+  if (to.find(word) != to.end())
+  {
+    out << "The word " << word << " already exists in " << toDict << "\n";
+    return;
+  }
+  Container copyCon = wordIt->second;
+  to.insert(word, copyCon);
+  out << "The word " << word << " copied from " << fromDict << " to " << toDict << "\n";
+}
+
+void shabalin::common(Dicts & dicts, std::istream & in, std::ostream & out)
+{
+  std::string newName, dict1Name, dict2Name;
+  in >> newName >> dict1Name >> dict2Name;
+  if (!in)
+  {
+    out << "<WRONG COMMAND>\n";
+    return;
+  }
+  if (dicts.find(newName) != dicts.end())
+  {
+    out << "The dictionary with name " << newName << " already exists.\n";
+    return;
+  }
+  auto it1 = dicts.find(dict1Name);
+  auto it2 = dicts.find(dict2Name);
+  if (it1 == dicts.end() || it2 == dicts.end())
+  {
+    out << "<WRONG COMMAND>\n";
+    return;
+  }
+  const Dict & dict1 = it1->second;
+  const Dict & dict2 = it2->second;
+  Dict result;
+  for (auto wit = dict1.cbegin(); wit != dict1.cend(); ++wit)
+  {
+    if (dict2.find(wit->first) != dict2.cend())
+    {
+      result.insert(wit->first, wit->second);
+    }
+  }
+  dicts.insert(newName, result);
+  out << "Dictionary " << newName << " is successfully created\n";
+}
+
+void shabalin::importDictfromFile(Dicts & dicts, const std::string & filename)
+{
+  std::ifstream file(filename);
+  if (!file)
+  {
+    throw std::runtime_error("Cannot open file\n");
+  }
+  std::string line;
+  std::string dictName;
+  Dict dict;
+  bool hasDict = false;
+  while (std::getline(file, line))
+  {
+    if (line.empty())
+    {
+      continue;
+    }
+    if (line.find(" - ") == std::string::npos)
+    {
+      if (hasDict)
+      {
+        dicts.insert(dictName, dict);
+        dict = Dict();
+      }
+      dictName = line;
+      hasDict = true;
+    }
+    else
+    {
+      std::size_t dashPos = line.find(" - ");
+      if (dashPos == std::string::npos)
+      {
+        continue;
+      }
+      std::string word = line.substr(0, dashPos);
+      std::string translationsStr = line.substr(dashPos + 3);
+      Container translations;
+      std::size_t start = 0;
+      std::size_t end = translationsStr.find(' ');
+      while (end != std::string::npos)
+      {
+        std::string translation = translationsStr.substr(start, end - start);
+        if (!translation.empty())
+        {
+          translations.push_back(translation);
+        }
+        start = end + 1;
+        end = translationsStr.find(' ', start);
+      }
+      std::string lastTranslation = translationsStr.substr(start);
+      if (!lastTranslation.empty())
+      {
+        translations.push_back(lastTranslation);
+      }
+      dict.insert(word, translations);
+    }
+  }
+  if (hasDict)
+  {
+    dicts.insert(dictName, dict);
+  }
+}
+
+void shabalin::listDicts(Dicts & dicts, std::istream &, std::ostream & out)
+{
+  if (dicts.empty())
+  {
+    out << "No dictionaries available.\n";
+    return;
+  }
+  out << "Available dictionaries:\n";
+  for (auto it = dicts.cbegin(); it != dicts.cend(); ++it)
+  {
+    out << "- " << it->first << "\n";
+  }
+}
+
+void shabalin::printHelp(std::ostream & out)
+{
+  out << "Commands list:\n";
+  out << "1) create <dict> - Create a new dictionary\n";
+  out << "2) add <dict> <key> <translation> - Add a word/translation to dictionary\n";
+  out << "3) translate <dict> <key> - Output all translations for a word\n";
+  out << "4) remove <dict> <key> - Delete a word from the dictionary\n";
+  out << "5) print <dict> - Show all words and translations from a dictionary\n";
+  out << "6) save <dict> <filename> - Save dictionary to file\n";
+  out << "7) combine <newdict> <dict1> <dict2> - Merge two dictionaries into a new one\n";
+  out << "8) delete <dict> - Delete a dictionary\n";
+  out << "9) edit <dict> <key> <translation> - Edit translations for a word\n";
+  out << "10) rename <dict> <newname> - Rename a dictionary\n";
+  out << "11) move <from> <to> <key> - Move word (with translations) to another dictionary\n";
+  out << "12) copy <from> <to> <key> - Copy word (with translations) to another dictionary\n";
+  out << "13) common <newdict> <dict1> <dict2> - Add common words of both to a new dictionary\n";
+  out << "14) list - show list of available dictionaries\n";
+  out << "\n";
 }
